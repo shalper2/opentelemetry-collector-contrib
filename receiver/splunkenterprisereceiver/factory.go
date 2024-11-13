@@ -63,7 +63,8 @@ func createMetricsReceiver(
 
 	scraper, err := scraperhelper.NewScraperWithoutType(
 		splunkScraper.scrape,
-		scraperhelper.WithStart(splunkScraper.start))
+		scraperhelper.WithStart(splunkScraper.start),
+		scraperhelper.WithShutdown(splunkScraper.shutdown))
 	if err != nil {
 		return nil, err
 	}
