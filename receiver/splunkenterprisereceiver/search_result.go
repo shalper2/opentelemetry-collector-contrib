@@ -20,6 +20,7 @@ var searchDict = map[string]string{
 }
 
 var apiDict = map[string]string{
+	`SplunkInfo`:                `/services/server/info?output_mode=json`,
 	`SplunkIndexerThroughput`:   `/services/server/introspection/indexer?output_mode=json`,
 	`SplunkDataIndexesExtended`: `/services/data/indexes-extended?output_mode=json&count=-1`,
 	`SplunkIntrospectionQueues`: `/services/server/introspection/queues?output_mode=json&count=-1`,

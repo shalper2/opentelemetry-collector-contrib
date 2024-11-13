@@ -32,7 +32,7 @@ var errMaxSearchWaitTimeExceeded = errors.New("maximum search wait time exceeded
 type splunkScraper struct {
 	splunkClient   *splunkEntClient
 	settings       component.TelemetrySettings
-	deploymentInfo chan Info
+	deploymentInfo chan *Info
 	errsChan       chan error
 	errsOutChan    chan *scrapererror.ScrapeErrors
 	conf           *Config
@@ -57,14 +57,19 @@ func (s *splunkScraper) start(ctx context.Context, h component.Host) (err error)
 	}
 
 	s.splunkClient = client
-	s.deploymentInfo = make(chan Info, 1)
+	s.deploymentInfo = make(chan *Info, 1)
 	s.errsChan = make(chan error, metricScrapes)
 	s.errsOutChan = make(chan *scrapererror.ScrapeErrors)
 
 	go func() {
 		errorListener(ctx, s.errsChan, s.errsOutChan)
-		s.scrapeInfo(ctx, ticker)
 	}()
+
+	if s.conf.BVInfo {
+		go func() {
+			s.scrapeInfo(ctx, ticker)
+		}()
+	}
 
 	return nil
 }
@@ -78,6 +83,14 @@ func (s *splunkScraper) shutdown(ctx context.Context) (err error) {
 
 // special scraper which scrape deployment build and version info. this happens on a different timer than the rest of the scrapes and is deployed on start.
 func (s *splunkScraper) scrapeInfo(ctx context.Context, ticker *time.Ticker) {
+	var i *Info
+
+	// do it once on start
+	i = s.utilScrapeInfo(ctx)
+	if i != nil {
+		s.deploymentInfo <- i
+	}
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -85,7 +98,11 @@ func (s *splunkScraper) scrapeInfo(ctx context.Context, ticker *time.Ticker) {
 			return
 		case <-ticker.C:
 			//scrape info
-			var i Info
+			i = s.utilScrapeInfo(ctx)
+			if i == nil {
+				continue
+			}
+
 			s.deploymentInfo <- i
 		}
 
@@ -1765,4 +1782,51 @@ func (s *splunkScraper) scrapeSearchArtifacts(ctx context.Context, now pcommon.T
 			s.mb.RecordSplunkServerSearchartifactsJobCacheCountDataPoint(now, cacheTotalEntries, s.conf.SHEndpoint.Endpoint)
 		}
 	}
+}
+
+// scrape splunk deployment build and version info. is only called by the scrapeInfo function,
+// not dispatched in the scrape() function.
+func (s *splunkScraper) utilScrapeInfo(ctx context.Context) *Info {
+	switch {
+	case s.splunkClient.isConfigured(typeSh):
+		ctx = context.WithValue(ctx, endpointType("type"), typeSh)
+	case s.splunkClient.isConfigured(typeIdx):
+		ctx = context.WithValue(ctx, endpointType("type"), typeIdx)
+	case s.splunkClient.isConfigured(typeCm):
+		ctx = context.WithValue(ctx, endpointType("type"), typeCm)
+	default:
+		s.errsChan <- errNoClientFound
+		return nil
+	}
+
+	var info Info
+
+	ept := apiDict[`SplunkInfo`]
+
+	req, err := s.splunkClient.createAPIRequest(ctx, ept)
+	if err != nil {
+		s.errsChan <- err
+		return nil
+	}
+
+	res, err := s.splunkClient.makeRequest(req)
+	if err != nil {
+		s.errsChan <- err
+		return nil
+	}
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		s.errsChan <- err
+		return nil
+	}
+
+	err = json.Unmarshal(body, &info)
+	if err != nil {
+		s.errsChan <- err
+		return nil
+	}
+
+	return &info
 }
