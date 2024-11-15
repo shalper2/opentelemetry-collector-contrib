@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/filter"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/receiver"
@@ -2066,6 +2067,8 @@ type MetricsBuilder struct {
 	metricsCapacity                                   int                  // maximum observed number of metrics per resource.
 	metricsBuffer                                     pmetric.Metrics      // accumulates metrics data before emitting.
 	buildInfo                                         component.BuildInfo  // contains version information.
+	resourceAttributeIncludeFilter                    map[string]filter.Filter
+	resourceAttributeExcludeFilter                    map[string]filter.Filter
 	metricSplunkAggregationQueueRatio                 metricSplunkAggregationQueueRatio
 	metricSplunkBucketsSearchableStatus               metricSplunkBucketsSearchableStatus
 	metricSplunkDataIndexesExtendedBucketCount        metricSplunkDataIndexesExtendedBucketCount
@@ -2127,6 +2130,12 @@ func WithStartTime(startTime pcommon.Timestamp) MetricBuilderOption {
 }
 
 func NewMetricsBuilder(mbc MetricsBuilderConfig, settings receiver.Settings, options ...MetricBuilderOption) *MetricsBuilder {
+	if !mbc.ResourceAttributes.SplunkBuildInfo.enabledSetByUser {
+		settings.Logger.Warn("[WARNING] Please set `enabled` field explicitly for `splunk.build.info`: The build info resource attribute was enabled but not set for splunkenterprise receiver")
+	}
+	if !mbc.ResourceAttributes.SplunkVersionInfo.enabledSetByUser {
+		settings.Logger.Warn("[WARNING] Please set `enabled` field explicitly for `splunk.version.info`: The version info resource attribute was enabled but not set for splunkenterprise receiver")
+	}
 	mb := &MetricsBuilder{
 		config:                              mbc,
 		startTime:                           pcommon.NewTimestampFromTime(time.Now()),
@@ -2172,12 +2181,31 @@ func NewMetricsBuilder(mbc MetricsBuilderConfig, settings receiver.Settings, opt
 		metricSplunkServerSearchartifactsSavedsearches:    newMetricSplunkServerSearchartifactsSavedsearches(mbc.Metrics.SplunkServerSearchartifactsSavedsearches),
 		metricSplunkServerSearchartifactsScheduled:        newMetricSplunkServerSearchartifactsScheduled(mbc.Metrics.SplunkServerSearchartifactsScheduled),
 		metricSplunkTypingQueueRatio:                      newMetricSplunkTypingQueueRatio(mbc.Metrics.SplunkTypingQueueRatio),
+		resourceAttributeIncludeFilter:                    make(map[string]filter.Filter),
+		resourceAttributeExcludeFilter:                    make(map[string]filter.Filter),
+	}
+	if mbc.ResourceAttributes.SplunkBuildInfo.MetricsInclude != nil {
+		mb.resourceAttributeIncludeFilter["splunk.build.info"] = filter.CreateFilter(mbc.ResourceAttributes.SplunkBuildInfo.MetricsInclude)
+	}
+	if mbc.ResourceAttributes.SplunkBuildInfo.MetricsExclude != nil {
+		mb.resourceAttributeExcludeFilter["splunk.build.info"] = filter.CreateFilter(mbc.ResourceAttributes.SplunkBuildInfo.MetricsExclude)
+	}
+	if mbc.ResourceAttributes.SplunkVersionInfo.MetricsInclude != nil {
+		mb.resourceAttributeIncludeFilter["splunk.version.info"] = filter.CreateFilter(mbc.ResourceAttributes.SplunkVersionInfo.MetricsInclude)
+	}
+	if mbc.ResourceAttributes.SplunkVersionInfo.MetricsExclude != nil {
+		mb.resourceAttributeExcludeFilter["splunk.version.info"] = filter.CreateFilter(mbc.ResourceAttributes.SplunkVersionInfo.MetricsExclude)
 	}
 
 	for _, op := range options {
 		op.apply(mb)
 	}
 	return mb
+}
+
+// NewResourceBuilder returns a new resource builder that should be used to build a resource associated with for the emitted metrics.
+func (mb *MetricsBuilder) NewResourceBuilder() *ResourceBuilder {
+	return NewResourceBuilder(mb.config.ResourceAttributes)
 }
 
 // updateCapacity updates max length of metrics and resource attributes that will be used for the slice capacity.
@@ -2280,6 +2308,16 @@ func (mb *MetricsBuilder) EmitForResource(options ...ResourceMetricsOption) {
 
 	for _, op := range options {
 		op.apply(rm)
+	}
+	for attr, filter := range mb.resourceAttributeIncludeFilter {
+		if val, ok := rm.Resource().Attributes().Get(attr); ok && !filter.Matches(val.AsString()) {
+			return
+		}
+	}
+	for attr, filter := range mb.resourceAttributeExcludeFilter {
+		if val, ok := rm.Resource().Attributes().Get(attr); ok && filter.Matches(val.AsString()) {
+			return
+		}
 	}
 
 	if ils.Metrics().Len() > 0 {

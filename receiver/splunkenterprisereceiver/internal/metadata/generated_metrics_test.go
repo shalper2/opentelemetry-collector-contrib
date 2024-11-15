@@ -42,6 +42,15 @@ func TestMetricsBuilder(t *testing.T) {
 			resAttrsSet: testDataSetNone,
 			expectEmpty: true,
 		},
+		{
+			name:        "filter_set_include",
+			resAttrsSet: testDataSetAll,
+		},
+		{
+			name:        "filter_set_exclude",
+			resAttrsSet: testDataSetAll,
+			expectEmpty: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -53,6 +62,14 @@ func TestMetricsBuilder(t *testing.T) {
 			mb := NewMetricsBuilder(loadMetricsBuilderConfig(t, tt.name), settings, WithStartTime(start))
 
 			expectedWarnings := 0
+			if tt.resAttrsSet == testDataSetDefault {
+				assert.Equal(t, "[WARNING] Please set `enabled` field explicitly for `splunk.build.info`: The build info resource attribute was enabled but not set for splunkenterprise receiver", observedLogs.All()[expectedWarnings].Message)
+				expectedWarnings++
+			}
+			if tt.resAttrsSet == testDataSetDefault {
+				assert.Equal(t, "[WARNING] Please set `enabled` field explicitly for `splunk.version.info`: The version info resource attribute was enabled but not set for splunkenterprise receiver", observedLogs.All()[expectedWarnings].Message)
+				expectedWarnings++
+			}
 
 			assert.Equal(t, expectedWarnings, observedLogs.Len())
 
@@ -198,7 +215,10 @@ func TestMetricsBuilder(t *testing.T) {
 			allMetricsCount++
 			mb.RecordSplunkTypingQueueRatioDataPoint(ts, 1, "splunk.host-val")
 
-			res := pcommon.NewResource()
+			rb := mb.NewResourceBuilder()
+			rb.SetSplunkBuildInfo("splunk.build.info-val")
+			rb.SetSplunkVersionInfo("splunk.version.info-val")
+			res := rb.Emit()
 			metrics := mb.Emit(WithResource(res))
 
 			if tt.expectEmpty {

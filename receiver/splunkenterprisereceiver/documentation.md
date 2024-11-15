@@ -588,3 +588,10 @@ Gauge tracking number of scheduled search artifacts currently on disk. Note:* Mu
 | Name | Description | Values |
 | ---- | ----------- | ------ |
 | splunk.host | The name of the splunk host | Any Str |
+
+## Resource Attributes
+
+| Name | Description | Values | Enabled |
+| ---- | ----------- | ------ | ------- |
+| splunk.build.info | Build information for the Splunk instance being scraped for metrics | Any Str | false |
+| splunk.version.info | Version information for the Splunk instance being scraped for metrics | Any Str | false |
