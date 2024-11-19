@@ -19,6 +19,7 @@ import (
 
 const (
 	defaultInterval          = 10 * time.Minute
+	defaultBVInterval        = 60 * time.Minute
 	defaultMaxSearchWaitTime = 60 * time.Second
 )
 
@@ -42,6 +43,7 @@ func createDefaultConfig() component.Config {
 		ControllerConfig:     scfg,
 		MetricsBuilderConfig: metadata.DefaultMetricsBuilderConfig(),
 		BVInfo:               false,
+		BVInterval:           defaultBVInterval,
 	}
 }
 

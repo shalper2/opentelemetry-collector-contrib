@@ -37,19 +37,23 @@ type splunkScraper struct {
 	errsOutChan    chan *scrapererror.ScrapeErrors
 	conf           *Config
 	mb             *metadata.MetricsBuilder
+	rb             *metadata.ResourceBuilder
 }
 
 func newSplunkMetricsScraper(params receiver.Settings, cfg *Config) splunkScraper {
+	mb := metadata.NewMetricsBuilder(cfg.MetricsBuilderConfig, params)
+	rb := mb.NewResourceBuilder()
 	return splunkScraper{
 		settings: params.TelemetrySettings,
 		conf:     cfg,
-		mb:       metadata.NewMetricsBuilder(cfg.MetricsBuilderConfig, params),
+		mb:       mb,
+		rb:       rb,
 	}
 }
 
 // Create a client instance and add to the splunkScraper
 func (s *splunkScraper) start(ctx context.Context, h component.Host) (err error) {
-	ticker := time.NewTicker(60 * time.Minute)
+	ticker := time.NewTicker(s.conf.BVInterval)
 
 	client, err := newSplunkEntClient(ctx, s.conf, h, s.settings)
 	if err != nil {
@@ -105,7 +109,6 @@ func (s *splunkScraper) scrapeInfo(ctx context.Context, ticker *time.Ticker) {
 
 			s.deploymentInfo <- i
 		}
-
 	}
 }
 
@@ -133,7 +136,9 @@ func errorListener(ctx context.Context, eQueue <-chan error, eOut chan<- *scrape
 // The big one: Describes how all scraping tasks should be performed. Part of the scraper interface
 func (s *splunkScraper) scrape(ctx context.Context) (pmetric.Metrics, error) {
 	var wg sync.WaitGroup
+	var op metadata.ResourceMetricsOption
 	var errs *scrapererror.ScrapeErrors
+
 	now := pcommon.NewTimestampFromTime(time.Now())
 	metricScrapes := []func(context.Context, pcommon.Timestamp){
 		s.scrapeLicenseUsageByIndex,
@@ -175,7 +180,17 @@ func (s *splunkScraper) scrape(ctx context.Context) (pmetric.Metrics, error) {
 
 	wg.Wait()
 	errs = <-s.errsOutChan
-	return s.mb.Emit(), errs.Combine()
+
+	select {
+	case v := <-s.deploymentInfo:
+		// if info has been scraped we update it
+		s.rb.SetSplunkBuildInfo(v.Entries[0].Content.Build)
+		s.rb.SetSplunkVersionInfo(v.Entries[0].Content.Version)
+	default:
+	}
+
+	op = metadata.WithResource(s.rb.Emit())
+	return s.mb.Emit(op), errs.Combine()
 }
 
 // Each metric has its own scrape function associated with it

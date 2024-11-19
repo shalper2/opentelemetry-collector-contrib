@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/url"
 	"strings"
+	"time"
 
 	"go.opentelemetry.io/collector/config/confighttp"
 	"go.opentelemetry.io/collector/receiver/scraperhelper"
@@ -28,6 +29,7 @@ type Config struct {
 	SHEndpoint                     confighttp.ClientConfig `mapstructure:"search_head"`
 	CMEndpoint                     confighttp.ClientConfig `mapstructure:"cluster_master"`
 	BVInfo                         bool                    `mapstructure:"build_version_info"`
+	BVInterval                     time.Duration           `mapstructure:"build_version_interval"`
 }
 
 func (cfg *Config) Validate() (errors error) {
