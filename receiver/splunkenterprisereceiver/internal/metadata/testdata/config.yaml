@@ -81,6 +81,11 @@ all_set:
       enabled: true
     splunk.typing.queue.ratio:
       enabled: true
+  resource_attributes:
+    splunk.build.info:
+      enabled: true
+    splunk.version.info:
+      enabled: true
 none_set:
   metrics:
     splunk.aggregation.queue.ratio:
@@ -163,3 +168,28 @@ none_set:
       enabled: false
     splunk.typing.queue.ratio:
       enabled: false
+  resource_attributes:
+    splunk.build.info:
+      enabled: false
+    splunk.version.info:
+      enabled: false
+filter_set_include:
+  resource_attributes:
+    splunk.build.info:
+      enabled: true
+      metrics_include:
+        - regexp: ".*"
+    splunk.version.info:
+      enabled: true
+      metrics_include:
+        - regexp: ".*"
+filter_set_exclude:
+  resource_attributes:
+    splunk.build.info:
+      enabled: true
+      metrics_exclude:
+        - strict: "splunk.build.info-val"
+    splunk.version.info:
+      enabled: true
+      metrics_exclude:
+        - strict: "splunk.version.info-val"

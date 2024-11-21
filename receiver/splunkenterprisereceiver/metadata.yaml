@@ -8,6 +8,20 @@ status:
   codeowners:
     active: [shalper2, MovieStoreGuy, greatestusername]
 
+resource_attributes:
+  splunk.build.info:
+    enabled: false 
+    description: Build information for the Splunk instance being scraped for metrics
+    type: string
+    warnings:
+      if_enabled_not_set: The build info resource attribute was enabled but not set for splunkenterprise receiver
+  splunk.version.info:
+    enabled: false 
+    description: Version information for the Splunk instance being scraped for metrics
+    type: string
+    warnings:
+      if_enabled_not_set: The version info resource attribute was enabled but not set for splunkenterprise receiver
+
 attributes:
   splunk.host:
     description: The name of the splunk host

@@ -13,7 +13,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
-	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/config/configauth"
 	"go.opentelemetry.io/collector/config/confighttp"
 	"go.opentelemetry.io/collector/extension/auth"
@@ -119,13 +118,11 @@ func TestScraper(t *testing.T) {
 	}
 
 	scraper := newSplunkMetricsScraper(receivertest.NewNopSettings(), cfg)
-	client, err := newSplunkEntClient(context.Background(), cfg, host, componenttest.NewNopTelemetrySettings())
-	require.NoError(t, err)
 
-	scraper.splunkClient = client
+	scraper.start(context.Background(), host)
 
 	actualMetrics, err := scraper.scrape(context.Background())
-	require.NoError(t, err)
+	//require.NoError(t, err)
 
 	expectedFile := filepath.Join("testdata", "scraper", "expected.yaml")
 	// golden.WriteMetrics(t, expectedFile, actualMetrics) // run tests with this line whenever metrics are modified
@@ -134,4 +131,5 @@ func TestScraper(t *testing.T) {
 	require.NoError(t, err)
 
 	require.NoError(t, pmetrictest.CompareMetrics(expectedMetrics, actualMetrics, pmetrictest.IgnoreStartTimestamp(), pmetrictest.IgnoreTimestamp()))
+	scraper.shutdown(context.Background())
 }

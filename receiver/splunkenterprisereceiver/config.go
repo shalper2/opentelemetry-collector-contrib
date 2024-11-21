@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/url"
 	"strings"
+	"time"
 
 	"go.opentelemetry.io/collector/config/confighttp"
 	"go.opentelemetry.io/collector/receiver/scraperhelper"
@@ -27,6 +28,8 @@ type Config struct {
 	IdxEndpoint                    confighttp.ClientConfig `mapstructure:"indexer"`
 	SHEndpoint                     confighttp.ClientConfig `mapstructure:"search_head"`
 	CMEndpoint                     confighttp.ClientConfig `mapstructure:"cluster_master"`
+	InfoInterval                   time.Duration           `mapstructure:"get_info_interval"`
+	GetInfo                        string                  `mapstructure:"get_build_version_info"`
 }
 
 func (cfg *Config) Validate() (errors error) {
