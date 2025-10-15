@@ -24,28 +24,41 @@ import (
 //
 //nolint:unused
 type serviceManager struct {
-	handle windows.Handle // handle to SCM database
+	mgr *mgr.Mgr // handle to SCM database
 }
 
-// get SCM database handle
-//
-//nolint:unused,unparam
+// get a connection to the service manager
 func scmConnect() (*serviceManager, error) {
-	var h windows.Handle
+	var m *mgr.Mgr
+	var s *uint16
+
+	// we connect with a less permissive generic_read access rather than the
+	// default behavior of the mgr.Connect()
+	h, err := windows.OpenSCManager(s, nil, windows.GENERIC_READ)
+	if err != nil {
+		return nil, err
+	}
+
+	m.Handle = h
+
 	return &serviceManager{
-		h,
+		m,
 	}, nil
 }
 
-//nolint:unused
-func (*serviceManager) disconnect() error {
-	return nil
+// disconnect from service manager
+func (s *serviceManager) disconnect() error {
+	return s.mgr.Disconnect()
 }
 
-//nolint:unused
-func (*serviceManager) listServices() ([]string, error) {
-	var s []string
-	return s, nil
+// get a list of all services the user running the collector process has access
+// to
+func (s *serviceManager) listServices() ([]string, error) {
+	ls, err := s.mgr.ListServices()
+	if err != nil {
+		return nil, err
+	}
+	return ls, nil
 }
 
 //nolint:unused

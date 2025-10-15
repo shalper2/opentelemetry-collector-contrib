@@ -15,8 +15,7 @@ import (
 type Config struct {
 	scraperhelper.ControllerConfig `mapstructure:",squash"`
 	metadata.MetricsBuilderConfig  `mapstructure:",squash"`
-	IncludeServices                []string `mapstructure:"include_services"` // user provided list of services to monitor with receiver
-	ExcludeServices                []string `mapstructure:"exclude_services"` // user provided list of services to be excluded
+	ExcludeServices                []string `mapstructure:"exclude_services"` // user provided list of services to be excluded (if blank all services on the machine are monitored)
 }
 
 // Validate checks the receiver configuration is valid
