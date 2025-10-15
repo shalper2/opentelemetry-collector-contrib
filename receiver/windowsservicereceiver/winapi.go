@@ -1,7 +1,6 @@
 // Copyright The OpenTelemetry Authors
 // SPDX-License-Identifier: Apache-2.0
 
-//revive:disable:unused-parameter
 //go:build windows
 
 package windowsservicereceiver // import "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowsservicereceiver"
@@ -21,13 +20,13 @@ import (
 **/
 
 // service manager "client"
-//
-//nolint:unused
 type serviceManager struct {
 	mgr *mgr.Mgr // handle to SCM database
 }
 
-// get a connection to the service manager
+// get a connection to the service manager. this modifies the default mgr
+// behavior by obtaining a handle with GENERIC_READ permissions instead of the
+// default provided by the windows module
 func scmConnect() (*serviceManager, error) {
 	var m *mgr.Mgr
 	var s *uint16
@@ -59,9 +58,4 @@ func (s *serviceManager) listServices() ([]string, error) {
 		return nil, err
 	}
 	return ls, nil
-}
-
-//nolint:unused
-func (*serviceManager) openService() (*mgr.Service, error) {
-	return nil, nil
 }

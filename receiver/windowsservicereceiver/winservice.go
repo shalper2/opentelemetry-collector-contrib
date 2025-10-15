@@ -1,12 +1,13 @@
 // Copyright The OpenTelemetry Authors
 // SPDX-License-Identifier: Apache-2.0
 
-//revive:disable:unused-parameter
 //go:build windows
 
 package windowsservicereceiver // import "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowsservicereceiver"
 
-import "golang.org/x/sys/windows/svc/mgr" /**
+import "golang.org/x/sys/windows/svc/mgr"
+
+/**
 * Windows Service representation and associated functions. These handle
 * interacting with the SCM and martialing service information returned by the
 * windows api calls.
@@ -43,6 +44,7 @@ func getService(mgr *serviceManager, sname string) (*winService, error) {
 	return ws, nil
 }
 
+// record status for provided service
 func (ws *winService) getStatus(svc *mgr.Service) error {
 	status, err := svc.Query()
 	if err != nil {
@@ -52,6 +54,8 @@ func (ws *winService) getStatus(svc *mgr.Service) error {
 	return nil
 }
 
+// record start type for provided service. this is done through the exposed
+// Config type in the svc/mgr module
 func (ws *winService) getConfig(svc *mgr.Service) error {
 	cfg, err := svc.Config()
 	if err != nil {

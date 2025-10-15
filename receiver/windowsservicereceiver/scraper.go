@@ -1,7 +1,6 @@
 // Copyright The OpenTelemetry Authors
 // SPDX-License-Identifier: Apache-2.0
 
-//revive:disable:unused-parameter
 //go:build windows
 
 package windowsservicereceiver // import "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowsservicereceiver"
@@ -20,7 +19,8 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowsservicereceiver/internal/metadata"
 )
 
-//nolint:unused
+// the scraper is in charge of pulling service information from the os,
+// serializing it, and emitting it as metrics
 type windowsServiceScraper struct {
 	sm       *serviceManager
 	services []string
@@ -29,7 +29,7 @@ type windowsServiceScraper struct {
 	mb       *metadata.MetricsBuilder
 }
 
-//nolint:unused
+// creates a new windowsServiceScraper
 func newWindowsServiceScraper(settings receiver.Settings, cfg *Config) windowsServiceScraper {
 	return windowsServiceScraper{
 		settings: settings,
