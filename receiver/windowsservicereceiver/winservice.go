@@ -22,7 +22,7 @@ type winService struct {
 
 // get a service handler
 func getService(mgr *serviceManager, sname string) (*winService, error) {
-	var ws *winService
+	var ws winService
 	ws.name = sname
 
 	svc, err := mgr.mgr.OpenService(sname)
@@ -41,7 +41,7 @@ func getService(mgr *serviceManager, sname string) (*winService, error) {
 		return nil, err
 	}
 
-	return ws, nil
+	return &ws, nil
 }
 
 // record status for provided service

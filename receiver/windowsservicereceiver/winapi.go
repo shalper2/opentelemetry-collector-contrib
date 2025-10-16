@@ -28,7 +28,7 @@ type serviceManager struct {
 // behavior by obtaining a handle with GENERIC_READ permissions instead of the
 // default provided by the windows module
 func scmConnect() (*serviceManager, error) {
-	var m *mgr.Mgr
+	var m mgr.Mgr
 	var s *uint16
 
 	// we connect with a less permissive generic_read access rather than the
@@ -41,7 +41,7 @@ func scmConnect() (*serviceManager, error) {
 	m.Handle = h
 
 	return &serviceManager{
-		m,
+		&m,
 	}, nil
 }
 
