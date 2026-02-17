@@ -75,7 +75,7 @@ func mockJobsSearch(w http.ResponseWriter, r *http.Request) {
 }
 
 // second call to jobs api which includes a jobid
-func mockJobsSearchGetResponse(t *testing.T, w http.ResponseWriter, r *http.Request) {
+func mockJobsSearchGetResponse(w http.ResponseWriter, r *http.Request) {
 	status := http.StatusOK
 	w.Header().Set("Content-Type", "application/xml")
 	w.WriteHeader(status)
@@ -151,7 +151,7 @@ func createMockServer() *httptest.Server {
 		case strings.EqualFold(url, "/services/search/v2/jobs/"):
 			mockJobsSearch(w, r)
 		case strings.Contains(url, "results"):
-			mockJobsSearchGetResponse(t, w, r)
+			mockJobsSearchGetResponse(w, r)
 		default:
 			http.NotFoundHandler().ServeHTTP(w, r)
 		}
