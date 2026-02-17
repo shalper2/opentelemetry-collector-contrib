@@ -75,11 +75,11 @@ func mockJobsSearch(w http.ResponseWriter, r *http.Request) {
 }
 
 // second call to jobs api which includes a jobid
-func mockJobsSearchGetResponse(w http.ResponseWriter, r *http.Request) {
+func mockJobsSearchGetResponse(t *testing.T, w http.ResponseWriter, r *http.Request) {
 	status := http.StatusOK
 	w.Header().Set("Content-Type", "application/xml")
 	w.WriteHeader(status)
-	_, _ = w.Write(lookupSearchJobReturn(r))
+	_, _ = w.Write(lookupSearchJobReturn(t, r))
 }
 
 // this returns a jobid associated with the specific body
@@ -106,7 +106,7 @@ func getJobsSearchResponse(r *http.Request) []byte {
 
 // this is for when you send in a jobid and wish to read the actual search
 // response
-func lookupSearchJobReturn(r *http.Request) []byte {
+func lookupSearchJobReturn(t *testing.T, r *http.Request) []byte {
 	bodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
 		return []byte(`error`)
@@ -151,7 +151,7 @@ func createMockServer() *httptest.Server {
 		case strings.EqualFold(url, "/services/search/v2/jobs/"):
 			mockJobsSearch(w, r)
 		case strings.Contains(url, "results"):
-			mockJobsSearchGetResponse(w, r)
+			mockJobsSearchGetResponse(t, w, r)
 		default:
 			http.NotFoundHandler().ServeHTTP(w, r)
 		}
@@ -228,7 +228,7 @@ func TestScraper(t *testing.T) {
 	require.NoError(t, err)
 
 	expectedFile := filepath.Join("testdata", "scraper", "expected.yaml")
-	// golden.WriteMetrics(t, expectedFile, actualMetrics) // run tests with this line whenever metrics are modified
+	golden.WriteMetrics(t, expectedFile, actualMetrics) // run tests with this line whenever metrics are modified
 
 	expectedMetrics, err := golden.ReadMetrics(expectedFile)
 	require.NoError(t, err)
